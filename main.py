@@ -4,13 +4,13 @@ import numpy as np
 length = 3
 nodes = [2, 3, 3, 1]
 
-#Initializing weights for each layer
+#Initialising weights for each layer
 weights = []
 for i in range(length):
     W = np.random.randn(nodes[i + 1], nodes[i])
     weights.append(W)
 
-#Initializing biases for each layer
+#Initialising biases for each layer
 biases = []
 for i in range(length):
     B = np.random.randn(nodes[i + 1], 1)
@@ -31,6 +31,11 @@ def prep_data():
         [184, 64],
         [130, 69]
         ])
+    
+    #Normalising the data
+    mean = np.mean(data, axis=0)
+    std = np.std(data, axis=0)
+    data = (data - mean) / std
     
     labels = np.array([0,1,1,0,0,1,1,0,1,0])
     m = len(data)
@@ -84,9 +89,11 @@ def backprop(length, A0, labels, weights, biases, alpha, m):
 
     for i in range(length, 0, -1):
         if i == length:
+            #For the output layer, we do not apply the sigmoid function
             A = y_hat
             A_back = cache[i - 1]
             
+            #Calculating the gradient of the cost with respect to the activation of this layer
             dCost_dOut = (1 / m) * (A - labels)
             assert dCost_dOut.shape == (nodes[i], m)
 
@@ -144,7 +151,7 @@ def backprop(length, A0, labels, weights, biases, alpha, m):
 
 def train():
     global weights, biases
-    epochs = 100
+    epochs = 200
     alpha = 0.1
     costs = []
 
@@ -154,8 +161,14 @@ def train():
         error = backprop(length, A0, labels, weights, biases, alpha, m)
         costs.append(error)
 
-        if e % 20 == 0:
+        if e % 100 == 0:
             print(f"epoch {e}: cost = {error:4f}")
+
+    y_hat, _ = feed_forward(A0, length)
+    predictions = (y_hat > 0.5).astype(int)
+    accuracy = np.mean(predictions == labels)
+
+    print(f"\nFinal accuracy: {accuracy * 100:.2f}%")
 
     return costs
 
