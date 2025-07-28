@@ -1,5 +1,6 @@
 import numpy as np
 import csv
+import matplotlib.pyplot as plt
 
 #Setting layer length and number of nodes per layer
 length = 3
@@ -18,7 +19,7 @@ for i in range(length):
     biases.append(B)
 
 #Function to prepare the input data
-def prep_data(seed=42, ratio=0.2):
+def prep_data(seed=1, ratio=0.3):
     with open("data.csv", "r") as file:
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip header row
@@ -33,11 +34,11 @@ def prep_data(seed=42, ratio=0.2):
     data = np.array([list(map(float, row[2:])) for row in raw_data])
 
     # Shuffling the data
-    indices = np.arange(len(data))
-    np.random.shuffle(indices)
+    shuffle = np.arange(len(data))
+    np.random.shuffle(shuffle)
 
-    data = data[indices]
-    labels = labels[indices]
+    data = data[shuffle]
+    labels = labels[shuffle]
 
     #Normalising the data
     mean = np.mean(data, axis=0)
@@ -161,30 +162,45 @@ def backprop(length, A0, labels, weights, biases, alpha, m):
             #Updating the weights and biases
             weights[i - 1] -= alpha * dCost_dWeight
             biases[i - 1] -= alpha * dCost_dBias
+        
+        #Calculating the error and accuracy for the current epoch
+        y_hat, _ = feed_forward(A0, length)
+        predictions = (y_hat > 0.5).astype(int)
+        accuracy = np.mean(predictions == labels)
 
-    return error
+    return [error, accuracy]
 
 def train():
     global weights, biases
     epochs = 500
-    alpha = 0.05
+    alpha = 0.1
     costs = []
+    accuracies = []
 
     A0_train, labels_train, A0_test, labels_test, m = prep_data()
 
     for e in range(epochs + 1):
         error = backprop(length, A0_train, labels_train, weights, biases, alpha, m)
-        costs.append(error)
+        costs.append(error[0])
+        accuracies.append(error[1])
 
-        if e % 25 == 0:
-            print(f"epoch {e}: cost = {error:4f}")
+        if e % 10 == 0:
+            print("Epoch ", e, ": cost =", round(error[0], 4))
 
+    #Final evaluation on the test set
     y_hat, _ = feed_forward(A0_test, length)
     predictions = (y_hat > 0.5).astype(int)
     accuracy = np.mean(predictions == labels_test)
 
-    print(f"\nFinal accuracy: {accuracy * 100:.2f}%")
+    print("Accuracy: ", round(accuracy*100.0, 2), "%")
 
-    return costs
+    #Plotting cost and accuracy on a graph over epochs
+    plt.plot(range(epochs + 1), costs, label="Cost")
+    plt.plot(range(epochs + 1), accuracies, label="Accuracy")
+    plt.xlabel("Epoch")
+    plt.ylabel("Metric")
+    plt.title("Training Cost and Accuracy over Epochs")
+    plt.grid(True)
+    plt.show()
 
 train()
