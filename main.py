@@ -35,7 +35,24 @@ def prep_data():
     labels = np.array([0,1,1,0,0,1,1,0,1,0])
     m = len(data)
 
+    #Transposing the input data to match the expected shape
     A0 = data.T
     labels = labels.reshape(nodes[length], m)
 
     return A0, labels, m
+
+#Cost function using binary cross-entropy
+def cost(y_hat, y):
+    losses = -y * np.log(y_hat) - (1 - y) * np.log(1 - y_hat)
+
+    #turning our output into a n^L x m vector
+    m = y_hat.reshape(-1).shape[0]
+
+    #Calculating the mean loss over all examples
+    sum_loss = (1 / m) * np.sum(losses, axis=1)
+
+    return np.sum(sum_loss)
+
+#Our sigmoid activation function
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
