@@ -1,8 +1,9 @@
 import numpy as np
+import csv
 
 #Setting layer length and number of nodes per layer
 length = 3
-nodes = [2, 3, 3, 1]
+nodes = [30, 12, 12, 1]
 
 #Initialising weights for each layer
 weights = []
@@ -17,27 +18,21 @@ for i in range(length):
     biases.append(B)
 
 #Function to prepare the input data
-#These values will later be taken from a CSV file
 def prep_data():
-    data = np.array([
-        [150, 70],
-        [254, 73],
-        [312, 68],
-        [120, 60],
-        [154, 61],
-        [212, 65],
-        [216, 67],
-        [145, 67],
-        [184, 64],
-        [130, 69]
-        ])
-    
+    with open("data.csv", "r") as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)  # Skip header row
+
+        raw_data = [row for row in csv_reader]
+
+    labels = np.array([1 if row[1] == 'M' else 0 for row in raw_data])
+    data = np.array([list(map(float, row[2:])) for row in raw_data])
+
     #Normalising the data
     mean = np.mean(data, axis=0)
     std = np.std(data, axis=0)
     data = (data - mean) / std
     
-    labels = np.array([0,1,1,0,0,1,1,0,1,0])
     m = len(data)
 
     #Transposing the input data to match the expected shape
@@ -151,7 +146,7 @@ def backprop(length, A0, labels, weights, biases, alpha, m):
 
 def train():
     global weights, biases
-    epochs = 200
+    epochs = 250
     alpha = 0.1
     costs = []
 
@@ -161,7 +156,7 @@ def train():
         error = backprop(length, A0, labels, weights, biases, alpha, m)
         costs.append(error)
 
-        if e % 100 == 0:
+        if e % 25 == 0:
             print(f"epoch {e}: cost = {error:4f}")
 
     y_hat, _ = feed_forward(A0, length)
