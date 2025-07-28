@@ -1,22 +1,20 @@
 import numpy as np
 
 #Setting layer length and number of nodes per layer
-length = 5
-nodes = [2, 3, 3, 3, 2]
+length = 3
+nodes = [2, 3, 3, 1]
 
 #Initializing weights for each layer
-W1 = np.random.randn(nodes[1], nodes[0])
-W2 = np.random.randn(nodes[2], nodes[1])
-W3 = np.random.randn(nodes[3], nodes[2])
-W4 = np.random.randn(nodes[4], nodes[3])
-W5 = np.random.randn(nodes[4], nodes[3])
+weights = []
+for i in range(length):
+    W = np.random.randn(nodes[i + 1], nodes[i])
+    weights.append(W)
 
 #Initializing biases for each layer
-B1 = np.random.randn(nodes[1], 1)
-B2 = np.random.randn(nodes[2], 1)
-B3 = np.random.randn(nodes[3], 1)
-B4 = np.random.randn(nodes[4], 1)
-B5 = np.random.randn(nodes[4], 1)
+biases = []
+for i in range(length):
+    B = np.random.randn(nodes[i + 1], 1)
+    biases.append(B)
 
 #Function to prepare the input data
 #These values will later be taken from a CSV file
@@ -47,7 +45,7 @@ def prep_data():
 def cost(y_hat, y):
     losses = -y * np.log(y_hat) - (1 - y) * np.log(1 - y_hat)
 
-    #turning our output into a n^L x m vector
+    #turning the output into a n^L x m vector
     m = y_hat.reshape(-1).shape[0]
 
     #Calculating the mean loss over all examples
@@ -57,35 +55,108 @@ def cost(y_hat, y):
 
 #Sigmoid activation function
 def sigmoid(z):
+    #Prevent overflow
+    z = np.clip(z, -500, 500)  
     return 1 / (1 + np.exp(-z))
 
 #Forward prop function
-def feed_forward(A0):
+def feed_forward(A0, length):
+    cache = [A0]
     #Calculating the activations for each layer
-    Z1 = np.dot(W1, A0) + B1
-    A1 = sigmoid(Z1)
+    for i in range(length):
+        if i != length - 1:
+            Z = np.dot(weights[i], cache[i]) + biases[i]
+            A = sigmoid(Z)
+            #Storing the activations in a cache for backprop
+            cache.append(A)
 
-    Z2 = np.dot(W2, A1) + B2
-    A2 = sigmoid(Z2)
+        else:
+            Z = np.dot(weights[i], cache[i]) + biases[i]
+            A_last = sigmoid(Z)
 
-    Z3 = np.dot(W3, A2) + B3
-    A3 = sigmoid(Z3)
+    return A_last, cache
 
-    Z4 = np.dot(W4, A3) + B4
-    A4 = sigmoid(Z4)
+#Backprop function with scalability in mind
+def backprop(length, A0, labels, weights, biases, alpha, m):
+    y_hat, cache = feed_forward(A0, length)
 
-    Z5 = np.dot(W5, A4) + B5
-    A5 = sigmoid(Z5)
+    error = cost(y_hat, labels)
 
-    #Storing the activations in a cache for backprop
-    cache = {
-        "A0": A0,
-        "A1": A1,
-        "A2": A2,
-        "A3": A3,
-        "A4": A4,
-    }
+    for i in range(length, 0, -1):
+        if i == length:
+            A = y_hat
+            A_back = cache[i - 1]
+            
+            dCost_dOut = (1 / m) * (A - labels)
+            assert dCost_dOut.shape == (nodes[i], m)
 
-    return A5, cache
+            #Calculating the gradient of the output layer with respect to the activation of the previous layer
+            dOut_dWeight = A_back
+            assert dOut_dWeight.shape == (nodes[i - 1], m)
 
-A0, labels, m = prep_data()
+            #Calculating the gradient of the cost with respect to the weights of this layer
+            dCost_dWeight = np.dot(dCost_dOut, dOut_dWeight.T)
+            assert dCost_dWeight.shape == (nodes[i], nodes[i - 1])
+
+            #Calculating the gradient of the cost with respect to the biases of this layer
+            dCost_dBias = np.sum(dCost_dOut, axis=1, keepdims=True)
+            assert dCost_dBias.shape == (nodes[i], 1)
+
+            #Calculating the gradient of the cost with respect to the activation of previous layer
+            dCost_dA_back = weights[i - 1].T @ dCost_dOut
+            assert dCost_dA_back.shape == (nodes[i - 1], m)
+
+            #Updating the weights and biases
+            weights[i - 1] -= alpha * dCost_dWeight
+            biases[i - 1] -= alpha * dCost_dBias
+
+        else:
+            A = cache[i]
+
+            if i == 1:
+                A_back = A0
+
+            else:
+                A_back = cache[i - 1]
+
+            #Calculating the gradient of the cost with respect to the activation of this layer
+            dA_dCost = A * (1 - A)
+            dSigmoid = dCost_dA_back * dA_dCost
+            assert dSigmoid.shape == (nodes[i], m)
+
+            #Calculating the gradient of the output layer with respect to the activation of the previous layer
+            dOut_dWeight = cache[i - 1]
+            dCost_dWeight = np.dot(dSigmoid, dOut_dWeight.T)
+            assert dCost_dWeight.shape == (nodes[i], nodes[i - 1])
+
+            #Calculating the gradient of the cost with respect to the biases of this layer
+            dCost_dBias = np.sum(dSigmoid, axis=1, keepdims=True)
+            assert dCost_dBias.shape == (nodes[i], 1)
+
+            dCost_dA_back = weights[i - 1].T @ dSigmoid
+            assert dCost_dA_back.shape == (nodes[i - 1], m)
+
+            #Updating the weights and biases
+            weights[i - 1] -= alpha * dCost_dWeight
+            biases[i - 1] -= alpha * dCost_dBias
+
+    return error
+
+def train():
+    global weights, biases
+    epochs = 100
+    alpha = 0.1
+    costs = []
+
+    A0, labels, m = prep_data()
+
+    for e in range(epochs + 1):
+        error = backprop(length, A0, labels, weights, biases, alpha, m)
+        costs.append(error)
+
+        if e % 20 == 0:
+            print(f"epoch {e}: cost = {error:4f}")
+
+    return costs
+
+train()
