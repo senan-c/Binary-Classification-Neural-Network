@@ -18,28 +18,48 @@ for i in range(length):
     biases.append(B)
 
 #Function to prepare the input data
-def prep_data():
+def prep_data(seed=42, ratio=0.2):
     with open("data.csv", "r") as file:
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip header row
 
         raw_data = [row for row in csv_reader]
 
+    #Setting the random seed for reproduction
+    np.random.seed(seed)
+
+    #Splitting the data into labels and features
     labels = np.array([1 if row[1] == 'M' else 0 for row in raw_data])
     data = np.array([list(map(float, row[2:])) for row in raw_data])
+
+    # Shuffling the data
+    indices = np.arange(len(data))
+    np.random.shuffle(indices)
+
+    data = data[indices]
+    labels = labels[indices]
 
     #Normalising the data
     mean = np.mean(data, axis=0)
     std = np.std(data, axis=0)
     data = (data - mean) / std
-    
-    m = len(data)
 
-    #Transposing the input data to match the expected shape
-    A0 = data.T
-    labels = labels.reshape(nodes[length], m)
+    #Splitting the data into training and testing sets
+    split_index = int((1 - ratio) * len(data))
+    train_data = data[:split_index]
+    train_labels = labels[:split_index]
+    test_data = data[split_index:]
+    test_labels = labels[split_index:]
 
-    return A0, labels, m
+    #Transposing and reshaping for training
+    A0_train = train_data.T
+    A0_test = test_data.T
+    train_labels = train_labels.reshape(1, -1)
+    test_labels = test_labels.reshape(1, -1)
+
+    m = len(A0_train[0])
+
+    return A0_train, train_labels, A0_test, test_labels, m
 
 #Cost function using binary cross-entropy
 def cost(y_hat, y):
@@ -146,22 +166,22 @@ def backprop(length, A0, labels, weights, biases, alpha, m):
 
 def train():
     global weights, biases
-    epochs = 250
-    alpha = 0.1
+    epochs = 500
+    alpha = 0.05
     costs = []
 
-    A0, labels, m = prep_data()
+    A0_train, labels_train, A0_test, labels_test, m = prep_data()
 
     for e in range(epochs + 1):
-        error = backprop(length, A0, labels, weights, biases, alpha, m)
+        error = backprop(length, A0_train, labels_train, weights, biases, alpha, m)
         costs.append(error)
 
         if e % 25 == 0:
             print(f"epoch {e}: cost = {error:4f}")
 
-    y_hat, _ = feed_forward(A0, length)
+    y_hat, _ = feed_forward(A0_test, length)
     predictions = (y_hat > 0.5).astype(int)
-    accuracy = np.mean(predictions == labels)
+    accuracy = np.mean(predictions == labels_test)
 
     print(f"\nFinal accuracy: {accuracy * 100:.2f}%")
 
