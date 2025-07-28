@@ -5,16 +5,18 @@ length = 5
 nodes = [2, 3, 3, 3, 2]
 
 #Initializing weights for each layer
-w1 = np.random.randn(nodes[1], nodes[0])
-w2 = np.random.randn(nodes[2], nodes[1])
-w3 = np.random.randn(nodes[3], nodes[2])
-w4 = np.random.randn(nodes[4], nodes[3])
+W1 = np.random.randn(nodes[1], nodes[0])
+W2 = np.random.randn(nodes[2], nodes[1])
+W3 = np.random.randn(nodes[3], nodes[2])
+W4 = np.random.randn(nodes[4], nodes[3])
+W5 = np.random.randn(nodes[4], nodes[3])
 
 #Initializing biases for each layer
-b1 = np.random.randn(nodes[1], 1)
-b2 = np.random.randn(nodes[2], 1)
-b3 = np.random.randn(nodes[3], 1)
-b4 = np.random.randn(nodes[4], 1)
+B1 = np.random.randn(nodes[1], 1)
+B2 = np.random.randn(nodes[2], 1)
+B3 = np.random.randn(nodes[3], 1)
+B4 = np.random.randn(nodes[4], 1)
+B5 = np.random.randn(nodes[4], 1)
 
 #Function to prepare the input data
 #These values will later be taken from a CSV file
@@ -53,6 +55,37 @@ def cost(y_hat, y):
 
     return np.sum(sum_loss)
 
-#Our sigmoid activation function
+#Sigmoid activation function
 def sigmoid(z):
     return 1 / (1 + np.exp(-z))
+
+#Forward prop function
+def feed_forward(A0):
+    #Calculating the activations for each layer
+    Z1 = np.dot(W1, A0) + B1
+    A1 = sigmoid(Z1)
+
+    Z2 = np.dot(W2, A1) + B2
+    A2 = sigmoid(Z2)
+
+    Z3 = np.dot(W3, A2) + B3
+    A3 = sigmoid(Z3)
+
+    Z4 = np.dot(W4, A3) + B4
+    A4 = sigmoid(Z4)
+
+    Z5 = np.dot(W5, A4) + B5
+    A5 = sigmoid(Z5)
+
+    #Storing the activations in a cache for backprop
+    cache = {
+        "A0": A0,
+        "A1": A1,
+        "A2": A2,
+        "A3": A3,
+        "A4": A4,
+    }
+
+    return A5, cache
+
+A0, labels, m = prep_data()
