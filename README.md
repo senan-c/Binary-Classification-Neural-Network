@@ -1,3 +1,4 @@
 # Binary-Classification-Neural-Network
 I have built this neural network from scratch as a way to learn how exactly *they* learn. It's been built with scalability in mind, so any change to the number of layers or nodes will be carried across the network without any issue. This is present across the entire program but most prominently in the backprop() function which I built to loop through any amount of layers while maintaining proper chain rule. Since this is being used for binary classification I chose the sigmoid activation formula and binary cross-entropy for my cost formula.
+
 The data is taken from a CSV file and split into seen and unseen data while being seeded for reproducibility. This data is also normalised and has its labels separated from its features. The entire program is also annotated to help with the legibility of the code. After training a line graph is displayed showing the changes in cost and accuracy over epochs.
